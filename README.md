@@ -13,12 +13,15 @@ This repo extends the original implementation by adding new features and improve
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Installation](#installation)
-- [Satellite Geo-Referenced Database](#satellite-geo-referenced-database)
-- [Drone Image Dataset](#drone-image-dataset)
-- [Visual Localization](#visual-localization)
-- [TMS Downloader](#tms-downloader)
+- [Visual Localization for UAVs using Satellite Imagery](#visual-localization-for-uavs-using-satellite-imagery)
+	- [Table of Contents](#table-of-contents)
+	- [Overview](#overview)
+	- [Installation](#installation)
+	- [Satellite Geo-Referenced Database](#satellite-geo-referenced-database)
+	- [Drone Image Dataset](#drone-image-dataset)
+	- [Visual Localization](#visual-localization)
+	- [TMS Downloader](#tms-downloader)
+- [TODO](#todo)
 - [Acknowledgments](#acknowledgments)
 - [References](#references)
 - [License](#license)
@@ -39,14 +42,7 @@ In this example, the query image has a sparse set of key points that are matched
 
 ## Installation
 
-First clone the repo:
-
-```bash
-git clone git@github.com:TerboucheHacene/visual_localization.git
-cd visual_localization
-```
-
-Then you need to use gitmodules to clone the *superglue_lib* submodule:
+You need to use gitmodules to clone the *superglue_lib* submodule:
 
 ```bash
 git submodule update --init --recursive
@@ -69,6 +65,12 @@ This will install all the dependencies needed for the project (including the dev
 poetry install --only main
 ```
 
+In newer versions of poetry you might need to install the *shell plugin*
+
+```bash
+poetry self add poetry-plugin-shell 
+```
+
 To activate the virtual environment, you can use the following command:
 
 ```bash
@@ -78,7 +80,7 @@ poetry shell
 To run the main script, you can use the following command:
 
 ```bash
-python scripts/main.py
+poetry run python scripts/main.py
 ```
 
 ## Satellite Geo-Referenced Database
