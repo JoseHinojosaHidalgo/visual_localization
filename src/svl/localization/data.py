@@ -228,7 +228,7 @@ class GeoDataProcessor:
                 "Top_left_lat": top_left_tile.lat,
                 "Top_left_lon": top_left_tile.long,
                 "Bottom_right_lat": bottom_right_tile.lat,
-                "Bottom_right_long": bottom_right_tile.long,
+                "Bottom_right_lon": bottom_right_tile.long,
             }
             all_metadata.append(metadata)
 

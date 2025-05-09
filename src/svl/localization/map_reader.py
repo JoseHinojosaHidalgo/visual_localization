@@ -47,7 +47,7 @@ class SatelliteMapReader(BaseMapReader):
         "Top_left_lat",
         "Top_left_lon",
         "Bottom_right_lat",
-        "Bottom_right_long",
+        "Bottom_right_lon",
     ]
     METADATA_METHOD = [
         "CSV",
@@ -119,7 +119,7 @@ class SatelliteMapReader(BaseMapReader):
             lat=metadata["Top_left_lat"], long=metadata["Top_left_lon"]
         )
         satellite_image.bottom_right = GpsCoordinate(
-            lat=metadata["Bottom_right_lat"], long=metadata["Bottom_right_long"]
+            lat=metadata["Bottom_right_lat"], long=metadata["Bottom_right_lon"]
         )
 
     def set_metadata_for_all_images(self) -> None:

@@ -39,7 +39,7 @@ if __name__ == "__main__":
     # Initialize the map reader
     map_reader = SatelliteMapReader(
         db_path="data/map/",
-        resize_size=(256,),
+        resize_size=(800,),
         logger=logging.getLogger("%s.SatelliteMapReader" % __name__),  # noqa
     )
     map_reader.initialize_db()

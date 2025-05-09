@@ -92,7 +92,7 @@ Because the flight zone is generally large, it is not practical to store the sat
 "Top_left_lat",
 "Top_left_lon",
 "Bottom_right_lat",
-"Bottom_right_long",
+"Bottom_right_lon",
 ```
 
 The geo-referenced database which have been used in the paper is stored in the **data/maps** directory. The flight zone is defined by the following coordinates:

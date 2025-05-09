@@ -21,10 +21,10 @@ def tile_xyz_to_bounds(x, y, z):
 
 # Define the flight zone
 flight_zone = FlightZone(
-    top_left_lat=46.843592,
-    top_left_long=-91.994737,
-    bottom_right_lat=46.842215,
-    bottom_right_long=-91.991058,
+    top_left_lat=41.305621,
+    top_left_long=-81.755249,
+    bottom_right_lat=41.302447,
+    bottom_right_long=-81.749354,
 )
 
 # Define the tile downloader
