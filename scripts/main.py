@@ -39,7 +39,7 @@ if __name__ == "__main__":
     # Initialize the map reader
     map_reader = SatelliteMapReader(
         db_path="data/map/",
-        resize_size=(800,),
+        resize_size=(256,),
         logger=logging.getLogger("%s.SatelliteMapReader" % __name__),  # noqa
     )
     map_reader.initialize_db()
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     # Initialize the drone image streamer
     streamer = DroneImageStreamer(
         image_folder="data/query/",
-        has_gt=True,
+        has_gt=False,
         logger=logging.getLogger("%s.DroneImageStreamer" % __name__),  # noqa
     )
     print(len(streamer))

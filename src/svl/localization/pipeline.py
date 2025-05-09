@@ -123,8 +123,10 @@ class Pipeline(BasePipeline):
             drone_image.image
         )
         gt_coordinates = GpsCoordinate(
-            lat=drone_image.geo_point.latitude,
-            long=drone_image.geo_point.longitude,
+            # lat=drone_image.geo_point.latitude,
+            # long=drone_image.geo_point.longitude,
+            lat=0,
+            long=0,
         )
 
         for idx in tqdm(
