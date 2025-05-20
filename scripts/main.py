@@ -1,4 +1,5 @@
 import logging
+import argparse
 from pathlib import Path
 from pprint import pprint
 
@@ -12,6 +13,13 @@ from svl.localization.preprocessing import QueryProcessor
 from svl.tms.data_structures import CameraModel
 
 if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser(description='Match satellite images')
+    
+    parser.add_argument('--torch-dev', type=str, required=False, default='cpu',
+                       help='Device to run torch on')
+    
+    args = parser.parse_args()
 
     # logging.basicConfig(level=logging.INFO)
     format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -20,7 +28,7 @@ if __name__ == "__main__":
 
     # Initialize the keypoint detector
     superpoint_config = SuperPointConfig(
-        device="cpu",
+        device=args.torch_dev,
         nms_radius=4,
         keypoint_threshold=0.01,
         max_keypoints=-1,
@@ -29,7 +37,7 @@ if __name__ == "__main__":
 
     # Initialize the keypoint matcher
     superglue_config = SuperGlueConfig(
-        device="cpu",
+        device=args.torch_dev,
         weights="outdoor",
         sinkhorn_iterations=20,
         match_threshold=0.5,

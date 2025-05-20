@@ -1,0 +1,8 @@
+.git
+__pycache__
+.venv # We copy the venv explicitly in the Dockerfile, so we can ignore the source one
+assets
+docs
+build
+*.pyc
+*.swp

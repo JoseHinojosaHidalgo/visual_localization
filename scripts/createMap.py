@@ -1,9 +1,109 @@
 import os
+import csv
+import math
+import argparse
 import pandas as pd
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 from collections import defaultdict
+from svl.tms import FlightZoneDownloader, FlightZone, TileDownloader
+
+def tile_xyz_to_bounds(x, y, z):
+    """Convert tile coordinates to bounds (top-left and bottom-right)"""
+    n = 2 ** z
+
+    lon_left = x / n * 360.0 - 180.0
+    lon_right = (x + 1) / n * 360.0 - 180.0
+
+    lat_top_rad = math.atan(math.sinh(math.pi * (1 - 2 * y / n)))
+    lat_bottom_rad = math.atan(math.sinh(math.pi * (1 - 2 * (y + 1) / n)))
+
+    lat_top = math.degrees(lat_top_rad)
+    lat_bottom = math.degrees(lat_bottom_rad)
+
+    return lat_top, lon_left, lat_bottom, lon_right
+
+def download_satellite_tiles(top_left_lat, top_left_lon, bottom_right_lat, bottom_right_lon, 
+                           api_key, output_path="./data/output/sat", zoom_level=20):
+    """
+    Download satellite tiles for the specified geographic area.
+    
+    Args:
+        top_left_lat (float): Top left latitude
+        top_left_lon (float): Top left longitude
+        bottom_right_lat (float): Bottom right latitude
+        bottom_right_lon (float): Bottom right longitude
+        api_key (str): MapTiler API key
+        output_path (str): Output directory path
+        zoom_level (int): Zoom level for tile download
+    
+    Returns:
+        str: Path to the CSV file containing tile coordinates
+    """
+    # Define the flight zone
+    flight_zone = FlightZone(
+        top_left_lat=top_left_lat,
+        top_left_long=top_left_lon,
+        bottom_right_lat=bottom_right_lat,
+        bottom_right_long=bottom_right_lon,
+    )
+
+    # Define the tile downloader
+    tms_url = f"https://api.maptiler.com/tiles/satellite/{{z}}/{{x}}/{{y}}.jpg?key={api_key}"
+    tile_downloader = TileDownloader(
+        url=tms_url,
+        channels=3,
+        api_key=None,
+        headers=None,
+        img_format="png",
+    )
+
+    # Define the flight zone downloader
+    flight_zone_downloader = FlightZoneDownloader(
+        tile_downloader=tile_downloader,
+        flight_zone=flight_zone,
+    )
+
+    # Create output directory
+    os.makedirs(output_path, exist_ok=True)
+
+    # Download tiles and save mosaic
+    print(f"Downloading tiles for area: ({top_left_lat}, {top_left_lon}) to ({bottom_right_lat}, {bottom_right_lon})")
+    flight_zone_downloader.download_tiles_and_save_as_mosaic(
+        zoom_level=zoom_level,
+        output_path=output_path,
+        mosaic_format="tiff",
+    )
+
+    # Create CSV file with tile coordinates
+    csv_path = os.path.join(output_path, "map.csv")
+    with open(csv_path, mode="w", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["Filename", "Top_left_lat", "Top_left_lon", "Bottom_right_lat", "Bottom_right_lon"])
+
+        # Iterate through files in the tiles directory
+        tiles_dir = os.path.join(output_path, "tiles")
+        if os.path.exists(tiles_dir):
+            for filename in os.listdir(tiles_dir):
+                if filename.endswith(".png") and "_" in filename:
+                    try:
+                        x_str, y_str, z_str = filename.replace(".png", "").split("_")
+                        x, y, z = int(x_str), int(y_str), int(z_str)
+                        top_lat, left_lon, bottom_lat, right_lon = tile_xyz_to_bounds(x, y, z)
+
+                        writer.writerow([
+                            filename,
+                            round(top_lat, 6),
+                            round(left_lon, 6),
+                            round(bottom_lat, 6),
+                            round(right_lon, 6),
+                        ])
+                    except ValueError:
+                        continue  # Skip files that don't match the pattern
+
+    print(f"Created coordinate CSV: {csv_path}")
+    return csv_path
 
 def create_stitched_csv(csv_path, output_csv_path, block_size=4):
     """
@@ -132,14 +232,14 @@ def create_stitched_csv(csv_path, output_csv_path, block_size=4):
 
 def stitch_satellite_images(csv_path, images_dir, output_dir, block_size=4):
     """
-    Stitches 256x256 satellite images into larger 1024x1024 images (4x4 blocks).
+    Stitches 256x256 satellite images into larger images.
     Uses all available images and fills missing spots with white.
     
     Args:
         csv_path (str): Path to CSV file containing image coordinates.
         images_dir (str): Directory containing the 256x256 satellite images.
         output_dir (str): Directory to save the stitched images.
-        block_size (int): Number of images per side in the stitched block (default 4 for 4x4 grid)
+        block_size (int): Number of images per side in the stitched block
     
     Returns:
         list: List of paths to the created stitched images.
@@ -216,105 +316,6 @@ def stitch_satellite_images(csv_path, images_dir, output_dir, block_size=4):
     
     return created_images
 
-def visualize_grid_coverage(csv_path):
-    """
-    Visualizes the coverage of satellite images in a grid.
-    Helps to understand how images are arranged.
-    
-    Args:
-        csv_path (str): Path to CSV file containing image coordinates.
-    """
-    df = pd.read_csv(csv_path)
-    
-    # Create scatter plot
-    plt.figure(figsize=(12, 10))
-    plt.scatter(df['Top_left_lon'], df['Top_left_lat'], alpha=0.5)
-    
-    # Add labels to the plot
-    plt.xlabel('Longitude')
-    plt.ylabel('Latitude')
-    plt.title('Grid Coverage of Satellite Images')
-    plt.grid(True)
-    
-    # Display the plot
-    plt.show()
-
-def stitch_custom_area(csv_path, images_dir, output_path, top_left_lat, top_left_lon, bottom_right_lat, bottom_right_lon):
-    """
-    Stitches images for a custom defined area.
-    
-    Args:
-        csv_path (str): Path to CSV file containing image coordinates.
-        images_dir (str): Directory containing the satellite images.
-        output_path (str): Path to save the stitched image.
-        top_left_lat (float): Latitude of top-left corner.
-        top_left_lon (float): Longitude of top-left corner.
-        bottom_right_lat (float): Latitude of bottom-right corner.
-        bottom_right_lon (float): Longitude of bottom-right corner.
-    
-    Returns:
-        str: Path to the created stitched image.
-    """
-    # Read coordinates from CSV
-    df = pd.read_csv(csv_path)
-    
-    # Filter for images within the specified area
-    area_images = df[
-        (df['Top_left_lat'] >= bottom_right_lat) & 
-        (df['Bottom_right_lat'] <= top_left_lat) & 
-        (df['Top_left_lon'] >= top_left_lon) & 
-        (df['Bottom_right_lon'] <= bottom_right_lon)
-    ]
-    
-    if area_images.empty:
-        print("No images found in the specified area.")
-        return None
-    
-    # Get unique latitude and longitude values within the area
-    area_top_lats = sorted(area_images['Top_left_lat'].unique(), reverse=True)
-    area_top_lons = sorted(area_images['Top_left_lon'].unique())
-    
-    # Calculate grid dimensions
-    grid_height = len(area_top_lats)
-    grid_width = len(area_top_lons)
-    
-    # Create a new blank image for the stitched result
-    stitched_image = Image.new('RGB', (256 * grid_width, 256 * grid_height))
-    
-    # Dictionary to map coordinates to grid positions
-    lat_to_row = {lat: i for i, lat in enumerate(area_top_lats)}
-    lon_to_col = {lon: j for j, lon in enumerate(area_top_lons)}
-    
-    # Place each image in the correct position
-    for _, row in area_images.iterrows():
-        filename = row['Filename']
-        top_lat = row['Top_left_lat']
-        top_lon = row['Top_left_lon']
-        
-        img_path = os.path.join(images_dir, filename)
-        
-        if not os.path.exists(img_path):
-            print(f"Warning: Image file not found: {img_path}")
-            continue
-        
-        try:
-            # Calculate position in the grid
-            grid_row = lat_to_row[top_lat]
-            grid_col = lon_to_col[top_lon]
-            
-            # Open the image and paste it into the right position
-            img = Image.open(img_path)
-            stitched_image.paste(img, (grid_col * 256, grid_row * 256))
-        except Exception as e:
-            print(f"Error processing {img_path}: {e}")
-    
-    # Save the stitched image
-    stitched_image.save(output_path)
-    print(f"Created custom area stitched image: {output_path}")
-    
-    return output_path
-
-# Function to ensure all images in the CSV are used
 def stitch_all_images(csv_path, images_dir, output_dir, block_size=4):
     """
     Ensures all images in the CSV are included in at least one stitched image.
@@ -399,30 +400,114 @@ def stitch_all_images(csv_path, images_dir, output_dir, block_size=4):
     
     return created_images
 
-# Example usage:
+def download_and_stitch_satellite_images(top_left_lat, top_left_lon, bottom_right_lat, bottom_right_lon, 
+                                        stitch_size=4, api_key=None, output_path="./data/output", zoom_level=20, skip_download=False):
+    """
+    Complete pipeline: Download satellite tiles and stitch them together.
+    
+    Args:
+        top_left_lat (float): Top left latitude
+        top_left_lon (float): Top left longitude  
+        bottom_right_lat (float): Bottom right latitude
+        bottom_right_lon (float): Bottom right longitude
+        stitch_size (int): Number of images per side in each stitched block (e.g., 4 for 4x4 = 16 images per stitched image)
+        api_key (str): MapTiler API key (if None, will try to get from environment variable MAPTILER_API_KEY)
+        output_path (str): Base output directory
+        zoom_level (int): Zoom level for tile download
+    
+    Returns:
+        tuple: (list of stitched image paths, path to stitched CSV file)
+    """
+    
+    # Get API key from environment if not provided
+    if api_key is None:
+        api_key = os.getenv('MAPTILER_API_KEY')
+        if api_key is None:
+            raise ValueError("API key must be provided either as parameter or MAPTILER_API_KEY environment variable")
+    
+    # Set up paths
+    sat_output_path = os.path.join(output_path, "sat")
+    stitched_output_path = os.path.join(output_path, "stitched")
+    
+    csv_path = os.path.join(sat_output_path, "map.csv")
+    if not skip_download:
+        print("Step 1: Downloading satellite tiles...")
+        # Download tiles
+        csv_path = download_satellite_tiles(
+            top_left_lat, top_left_lon, bottom_right_lat, bottom_right_lon,
+            api_key, sat_output_path, zoom_level
+        )
+    
+    print("\nStep 2: Stitching images...")
+    # Stitch images
+    images_dir = os.path.join(sat_output_path, "tiles")
+    stitched_images = stitch_all_images(csv_path, images_dir, stitched_output_path, stitch_size)
+    
+    print("\nStep 3: Creating stitched image coordinates CSV...")
+    # Create CSV for stitched images
+    stitched_csv_path = os.path.join(stitched_output_path, "map.csv")
+    stitched_df = create_stitched_csv(csv_path, stitched_csv_path, stitch_size)
+    
+    print(f"\nCompleted! Created {len(stitched_images)} stitched images.")
+    print(f"Stitched images saved to: {stitched_output_path}")
+    print(f"Stitched image coordinates saved to: {stitched_csv_path}")
+    
+    return stitched_images, stitched_csv_path
+
+# Main function with command line argument parsing
 if __name__ == "__main__":
-    # Example parameters (replace with your actual paths)
-    csv_path = "./data/output/sat/map.csv"
-    images_dir = "./data/output/sat/tiles/"
-    output_dir = "./data/output/stitched"
-    output_csv_path = "./data/output/stitched/map.csv"
+    parser = argparse.ArgumentParser(description='Download and stitch satellite images from MapTiler')
     
-    # Create 4x4 blocks (1024x1024 images) ensuring all images are used
-    stitched_images = stitch_all_images(csv_path, images_dir, output_dir, block_size=4)
-    print(f"Created {len(stitched_images)} stitched images.")
+    # Required coordinate arguments
+    parser.add_argument('--top-left-lat', type=float, required=True,
+                       help='Top left latitude coordinate')
+    parser.add_argument('--top-left-lon', type=float, required=True,
+                       help='Top left longitude coordinate')
+    parser.add_argument('--bottom-right-lat', type=float, required=True,
+                       help='Bottom right latitude coordinate')
+    parser.add_argument('--bottom-right-lon', type=float, required=True,
+                       help='Bottom right longitude coordinate')
     
-    # Create CSV with coordinates for the stitched images
-    stitched_df = create_stitched_csv(csv_path, output_csv_path, block_size=4)
-    print(f"CSV contains coordinates for {len(stitched_df)} stitched images.")
+    # Optional arguments
+    parser.add_argument('--stitch-size', type=int, default=4,
+                       help='Number of images per side in stitched block (default: 4 for 4x4 grid)')
+    parser.add_argument('--output-path', type=str, default='./data/output',
+                       help='Output directory path (default: ./data/output)')
+    parser.add_argument('--zoom-level', type=int, default=20,
+                       help='Zoom level for satellite tiles (default: 20)')
+    parser.add_argument('--skip-download', action=argparse.BooleanOptionalAction,
+                       help='Skips tile download')
     
-    # Visualize the grid coverage
-    visualize_grid_coverage(csv_path)
+    args = parser.parse_args()
     
-    # Create a custom area stitch (optional)
-    # stitch_custom_area(
-    #     csv_path, 
-    #     images_dir, 
-    #     "custom_area.png", 
-    #     46.843755, -91.995049,  # top-left coordinates
-    #     46.842112, -91.990929   # bottom-right coordinates
-    # )
+    # Get API key from environment variable
+    api_key = os.getenv('MAPTILER_API_KEY')
+    if api_key is None:
+        print("Error: MAPTILER_API_KEY environment variable is not set.")
+        print("Please set it with: export MAPTILER_API_KEY='your_api_key_here'")
+        exit(1)
+    
+    try:
+        print(f"Starting download and stitching process...")
+        print(f"Area: ({args.top_left_lat}, {args.top_left_lon}) to ({args.bottom_right_lat}, {args.bottom_right_lon})")
+        print(f"Stitch size: {args.stitch_size}x{args.stitch_size}")
+        print(f"Output path: {args.output_path}")
+        print(f"Zoom level: {args.zoom_level}")
+        
+        stitched_images, csv_path = download_and_stitch_satellite_images(
+            top_left_lat=args.top_left_lat,
+            top_left_lon=args.top_left_lon,
+            bottom_right_lat=args.bottom_right_lat,
+            bottom_right_lon=args.bottom_right_lon,
+            stitch_size=args.stitch_size,
+            api_key=api_key,
+            output_path=args.output_path,
+            zoom_level=args.zoom_level,
+            skip_download=args.skip_download
+        )
+        
+        print(f"\nSuccess! Created {len(stitched_images)} stitched satellite images.")
+        
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        exit(1)

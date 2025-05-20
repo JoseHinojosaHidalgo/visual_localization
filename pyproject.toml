@@ -2,7 +2,7 @@
 name = "svl"
 version = "0.1.0"
 description = ""
-authors = ["TERBOUCHE Hacene <hacene.terbouche@gmail.com>"]
+authors = ["TERBOUCHE Hacene <hacene.terbouche@gmail.com>", "Jose Hinojosa", "Enric Morella"]
 readme = "README.md"
 packages = [ { include = "svl", from = "src" } ]
 
@@ -14,7 +14,8 @@ torchvision = { version="^0.14", extras=["cuda116"] }
 tqdm = "^4.66.2"
 scipy = "^1.13.0"
 opencv-python = "4.5.5.64"
-
+pandas = "^2.2.3"
+pillow = "^11.2.1"
 
 [tool.poetry.group.dev.dependencies]
 ipdb = "^0.13"
