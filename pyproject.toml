@@ -7,15 +7,18 @@ readme = "README.md"
 packages = [ { include = "svl", from = "src" } ]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.10.dev0"
+# Python version requirement remains the same
+python = ">=3.9,<3.11.dev0"
+
+# Standard dependencies that are usually available for aarch64 or can be built
 numpy = "<2.0"
-torch = { version="^1.13.0", extras=["cuda116"] }
-torchvision = { version="^0.14", extras=["cuda116"] }
 tqdm = "^4.66.2"
 scipy = "^1.13.0"
 opencv-python = "4.5.5.64"
 pandas = "^2.2.3"
 pillow = "^11.2.1"
+# REMOVED torch and torchvision dependencies
+
 
 [tool.poetry.group.dev.dependencies]
 ipdb = "^0.13"
@@ -60,18 +63,18 @@ line_length = 89
 include = '\.pyi?$'
 exclude = '''
 (
-  /(
+  /(
       \.eggs         # exclude a few common directories in the
     | \.git          # root of the project
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-  )/
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
 )
 '''
 

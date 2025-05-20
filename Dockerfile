@@ -1,5 +1,5 @@
-# Use a CUDA 11.6 enabled development image based on Ubuntu 22.04 (compatible with Python 3.9)
-FROM nvidia/cuda:11.6.2-base-ubuntu20.04
+# Use a the pytorch image provided by jetson-containers
+FROM dustynv/l4t-pytorch:r36.2.0
 
 # Set environment variables for Poetry and Python
 ENV POETRY_VERSION=1.7.1 \
