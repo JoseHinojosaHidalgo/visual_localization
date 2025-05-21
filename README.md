@@ -18,7 +18,6 @@ This repo extends the original implementation by adding new features and improve
 	- [Overview](#overview)
 	- [Installation](#installation)
 	- [Satellite Geo-Referenced Database](#satellite-geo-referenced-database)
-	- [Drone Image Dataset](#drone-image-dataset)
 	- [Visual Localization](#visual-localization)
 	- [TMS Downloader](#tms-downloader)
 - [TODO](#todo)
@@ -110,29 +109,6 @@ Here is visualizations of the whole map:
 If you want to create your own geo-referenced database, you can use the **svl.tms.FlightZoneDownloader** class to download the satellite images from a TMS server and save them.
 For more information, you can check the **TMS Downloader** section.
 
-## Drone Image Dataset
-
-Two samples from the dataset used in the paper are stored in the **data/query** directory. The directory
-contains also a metadata file that contains the following columns:
-
-```
-Filename
-Latitude
-Longitude
-Altitude
-Gimball_Roll
-Gimball_Yaw
-Gimball_Pitch
-Flight_Roll
-Flight_Yaw
-Flight_Pitch
-```
-
-The goegraphical coordinates of the query images can be used to assess the accuracy of the localization algorithm.
-The rotation angles of the gimball and the flight can be used to align the query images with the satellite images.
-
-The full dataset can be found [here](https://utufi.sharepoint.com/sites/msteams_0ed7e9/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fmsteams%5F0ed7e9%2FShared%20Documents%2FDatasets%2FWIldnav%5FUAV%5FPhotographs&p=true&ga=1). The dataset contains two folders **matrice_300_session_1** and **matrice_300_session_2** containing 124 and 78 images respectively. Each subfolder contains the images and the metadata file.
-
 ## Visual Localization
 
 Before you run your code, you need to have:
@@ -195,88 +171,16 @@ The TMS Downloader is a tool that allows you to download satellite imagery from 
 * Download a rectangular map region by specifying the GPS coordinates of the top-left and bottom-right corners of the map region and saving the map region as a set of PNG files.
 * Or save the map region as a single PNG/tiff/GeoTIFF file.
 
-To download a single tile, you should specify the x, y, and the zoom level:
+The easiest way to download satellite imagery is to use the createMap.py script provided.
 
-```python
-from svl.tms import TileDownloader
-from svl.tms.data_structures import Tile
-
-tms_url = "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"
-tile_downloader = TileDownloader(
-    url=tms_url,
-    channels=3,
-    api_key=None,
-    headers=None,
-    img_format="png",
-)
-
-tile = Tile(x=36856, y=18881, zoom_level=16)
-output_path = "path/to/output/directory"
-tile_downloader.download_tile(tile, output_path)
-
-# or you can get the image as a numpy array
-image = tile_downloader.download_tile_as_image(tile)
-
+```bash
+poetry run python scripts/createMap.py \
+        --top-left-lat "$top_left_lat" \
+        --top-left-lon "$top_left_lon" \
+        --bottom-right-lat "$bottom_right_lat" \
+        --bottom-right-lon "$bottom_right_lon" \
+        --stitch-size="$stitch_size"
 ```
-
-To download a map region, you should define a **FlightZone** object by specifying the GPS coordinates of the top-left and bottom-right corners of the map region:
-
-```python
-from svl.tms import FlightZoneDownloader, FlightZone, TileDownloader
-
-# define the flight zone
-flight_zone = FlightZone(
-    top_left_lat=60.408615,
-    top_left_long=22.460445,
-    bottom_right_lat=60.400855,
-    bottom_right_long=22.471289,
-)
-
-# define the tile downloader
-tms_url = "https://mt.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
-tile_downloader = TileDownloader(
-    url=tms_url,
-    channels=3,
-    api_key=None,
-    headers=None,
-    img_format="png",
-)
-
-# define the flight zone downloader
-flight_zone_downloader = FlightZoneDownloader(
-    tile_downloader=tile_downloader,
-    flight_zone=flight_zone,
-)
-
-# download the tiles and save them as a mosaic
-output_path = "path/to/output/directory"
-flight_zone_downloader.download_tiles_and_save_as_mosaic(
-    zoom_level=16,
-    output_path=output_path,
-    mosaic_format="tiff",
-)
-```
-
-The structure of the output directory will be as follows:
-
-```
-output_path
-├── mosaic.tiff
-└── tiles
-    ├── 36856_18881_16.png
-    ├── 36856_18882_16.png
-    ├── 36856_18883_16.png
-    ├── 36856_18884_16.png
-    ├── 36857_18881_16.png
-    ├── 36857_18882_16.png
-    ├── 36857_18883_16.png
-    ├── 36857_18884_16.png
-    ├── 36858_18881_16.png
-    ├── 36858_18882_16.png
-    ├── 36858_18883_16.png
-    └── 36858_18884_16.png
-```
-
 
 # TODO
 
