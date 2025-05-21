@@ -1,5 +1,5 @@
 # Use a the pytorch image provided by jetson-containers
-FROM dustynv/l4t-pytorch:r36.2.0
+FROM dustynv/l4t-pytorch:r36.4.0
 
 # Set environment variables for Poetry and Python
 ENV POETRY_VERSION=1.7.1 \
@@ -13,26 +13,28 @@ ENV POETRY_VERSION=1.7.1 \
 # Add Poetry to the PATH
 ENV PATH="$POETRY_HOME/bin:$PATH"
 
-# Install system dependencies required for your project and Poetry installation
-# Includes curl for installing Poetry and python3/pip if not fully present
-# Also includes potentially needed build tools for some Python packages (like those with C extensions)
+# Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    python3.9 python3.9-venv python3-pip \
-	libgl1 \
-	libglib2.0-0 \
+    python3 python3-venv python3-pip \
+    libgl1 \
+    libglib2.0-0 \
     libsm6 \
     libxrender1 \
     libxext6 \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Ensure python3.9 is the default python
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1 \
-    && update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1
+# Optional: Make 'python' point to 'python3'
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
 # Install Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
+
+# Clean up apt caches to reduce image size
+RUN apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
